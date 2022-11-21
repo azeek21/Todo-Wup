@@ -30,6 +30,7 @@ function Todo({props}) {
 		setTodo(old => ({...old, files: ev.target.files}));
 	}
 
+	console.log(typeof(todo.is_done))
 	function changeHandler(ev) {
 		if (ev.target.name  === "deadline" || ev.target.name === "deadline_time") {
 			if (ev.target.name === "deadline" && !ev.target.value) {
@@ -64,7 +65,7 @@ function Todo({props}) {
 	}
 
 	const checkBoxHandler = (ev) => {
-		ev.target.value = ev.target.checked;
+		ev.target.value = ev.target.checked === "true";
 		changeHandler(ev);
 	}
 
