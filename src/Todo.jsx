@@ -30,7 +30,6 @@ function Todo({props}) {
 		setTodo(old => ({...old, files: ev.target.files}));
 	}
 
-	console.log(typeof(todo.is_done))
 	function changeHandler(ev) {
 		if (ev.target.name  === "deadline" || ev.target.name === "deadline_time") {
 			if (ev.target.name === "deadline" && !ev.target.value) {
@@ -65,11 +64,9 @@ function Todo({props}) {
 	}
 
 	const checkBoxHandler = (ev) => {
-		ev.target.value = ev.target.checked === "true";
-		changeHandler(ev);
+		console.log(typeof(todo.is_done))
+		changeHandler({target: {name: ev.target.name, value: ev.target.checked}});
 	}
-
-
 
 	const saveHandler = () => {
 		if (todo.is_new) {
@@ -165,7 +162,7 @@ function Todo({props}) {
 				<p className="dummy" > {todo.is_done ? "You finished it 👍" : todo.deadline ? `you have ${dayjs().to(dayjs.unix(todo.deadline), true)}` : "you dont have deadlines for this todo"} </p>
 				<label className="deadline_label" htmlFor="deadline">
 			
-					{collapsed && todo.deadline ? <p>{dayjs(todo.deadline).format("DD/MM/YYYY")}</p> : ""}
+					{collapsed && todo.deadline ? <p>{`${dayjs().to(dayjs.unix(todo.deadline), true)} ${todo.is_expired ? "ago" : "left"}`}</p> : ""}
 			
 					<input	id="deadline" 
 							className="deadline_input"
@@ -280,6 +277,8 @@ function Todos(props) {
 				is_expired: false,
 				created_at: 0,
 				is_new: true,
+				is_expired: false,
+				deadline: false,
 			}
 		)
 	}
@@ -290,8 +289,8 @@ function Todos(props) {
 	};
 
 	const todos_visible = todos.map(todo => {
-		console.log(dayjs(todo.deadline));
-		console.log(dayjs().format("HH:mm"))
+		if (todo.deadline && (todo.deadline - dayjs().unix()) < 0)
+			todo.is_expired = true;
 		return (
 			<Todo key={todo.id} props={{todo, is_new: todo.is_new, setTodo: {}, updateTodos, deleteTodo}} />
 		);

@@ -188,6 +188,7 @@ input:focus{
   position: relative;
   margin: 1% 0% 8% 0%;
   color: white;
+  background-size: 0%;
 }
 
 .todo__button{
@@ -339,7 +340,7 @@ textarea:focus{
   width: 100%;
 }
 
-.todos__collapsed{
+.todos__collapsed {
   position: relative;
   flex-direction: row;
   align-items: center;
@@ -348,10 +349,11 @@ textarea:focus{
   border: 1px solid transparent;
   border-bottom: 1px solid rgb(255, 255, 255, 0.7);
   border-radius: 0px;
-  transition: all 0.05s linear;
+  transition: all 0.4s linear;
   overflow: hidden;
   margin: 0;
   color: rgba(255, 231, 160, 1);
+  background-size: 100%;
 }
 
 .todos__collapsed textarea, input{
@@ -543,15 +545,6 @@ textarea:focus{
   font-size: 80%;
 }
 
-/* 
-.todos__collapsed[data-expired="true"]::before {
-  content: "";
-  position: absolute;
-  z-index: 9;
-  background-color: black;
-  border-radius: 10px;
-  height: 20%;
-  left: 0;
-  right: 0;
-  opacity: 0.7;
-} */
+
+
+
