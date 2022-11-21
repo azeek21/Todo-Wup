@@ -1,7 +1,13 @@
 import { collection, getDocs, where, query, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {db} from './firebase-config';
+import dayjs from "dayjs";
+import revealTime from "dayjs/plugin/relativeTime";
 import TodoData from "./todos";
+dayjs.extend(revealTime);
+
+// console.log(typeof(dayjs().get("year")))
+
 
 function Todo({props}) {
 	let {todo, setTodo, is_new, updateTodos, deleteTodo} = props;
@@ -24,9 +30,37 @@ function Todo({props}) {
 		setTodo(old => ({...old, files: ev.target.files}));
 	}
 
-	const changeHandler = (ev) => {
-		console.log(ev.target.name, ev.target.value)
-		setTodo(old => ({...old, [ev.target.name]: ev.target.value}))
+	function changeHandler(ev) {
+		if (ev.target.name  === "deadline" || ev.target.name === "deadline_time") {
+			if (ev.target.name === "deadline" && !ev.target.value) {
+				setTodo(old => ({...old, deadline: null}));
+			}
+			let deadline;
+			if (!todo.deadline) {
+				deadline = dayjs();
+			}
+			else if (todo.deadline) {
+				deadline = dayjs.unix(todo.deadline)
+			}
+			if (ev.target.name === "deadline") {
+				if (todo.deadline) {
+					let h = deadline.get("hour");
+					let m = deadline.get("minute");
+					deadline = dayjs(ev.target.value).set("hour", h).set("m", m);
+				}
+				else {
+					deadline = dayjs(ev.target.value);
+				}
+			}
+			if (ev.target.name === "deadline_time") {
+				let hour = ev.target.value ? parseInt(ev.target.value.split(":")[0]) : 23;
+				let minute = ev.target.value ? parseInt(ev.target.value.split(":")[1]) : 59;
+				deadline = deadline.set("hours", hour).set("minutes", minute);
+			}
+			setTodo(old => ({...old, deadline: deadline.unix()}));
+			return ;
+		}
+		setTodo(old => ({ ...old, [ev.target.name]: ev.target.value }));
 	}
 
 	const checkBoxHandler = (ev) => {
@@ -34,7 +68,14 @@ function Todo({props}) {
 		changeHandler(ev);
 	}
 
+
+
 	const saveHandler = () => {
+		if (todo.is_new) {
+			todo.created_at = new Date();
+			todo.is_new = false;
+			setCollapsed(true);
+		}
 		updateTodos(todo);
 		setEditmode(false);
 	}
@@ -55,6 +96,7 @@ function Todo({props}) {
 		}, 1000);
 	}
 
+	
 	const toggleTodo = (ev) => {
 		setCollapsed((old) => {return !old});
 	}
@@ -66,7 +108,7 @@ function Todo({props}) {
 		filejsx.push(
 			<div key={todo.id + i} className="todo__files__item" >
 				<a className="todo__file__link" href={file.name}>
-					<img className="todo__files__img" src="file.png" alt="FILE" />
+					<img className="todo__files__img" src="file.png" target="_blank" rel="noreferrer" alt="FILE" />
 					<h3 className="todo__filename"> {file.name.length > 10 ? file.name.slice(0,10): file.name} </h3>
 				</a>
 			</div>
@@ -110,25 +152,57 @@ function Todo({props}) {
 			data-done={todo.is_done}
 			data-expired={todo.is_expired}
 			>
+				<div className="todo_top">
+
 				<input	className="is_done"
 						onChange={checkBoxHandler}
 						disabled={!editmode}
 						type="checkbox"
 						name="is_done"
 						checked={eval(todo.is_done)}
-						/>
+						/>				
+				<p className="dummy" > {todo.is_done ? "You finished it 👍" : todo.deadline ? `you have ${dayjs().to(dayjs.unix(todo.deadline), true)}` : "you dont have deadlines for this todo"} </p>
+				<label className="deadline_label" htmlFor="deadline">
+			
+					{collapsed && todo.deadline ? <p>{dayjs(todo.deadline).format("DD/MM/YYYY")}</p> : ""}
+			
+					<input	id="deadline" 
+							className="deadline_input"
+							type="date"
+							onChange={changeHandler}
+							name="deadline"
+							value={dayjs.unix(todo.deadline ? todo.deadline : undefined).format("YYYY-MM-DD")}
+							disabled={!editmode}
+							min = {dayjs().format("YYYY-MM-DD")}
+				/>
+				</label>
+				
+				<label className="deadline_time" htmlFor="deadlineTime">
+					{collapsed && todo.deadline_time}
+					<input	type="time"
+							id="deadlineTime"
+							name="deadline_time"
+							value={dayjs.unix(todo.deadline).format("HH:mm")}
+							onChange={changeHandler}
+							disabled={!editmode}
+							min={dayjs().format("HH:mm")}
+					/>
+				</label>
+
+
+				</div>
 				<input	onChange={changeHandler}
 						disabled={!editmode}
 						className="todo__title"
 						type="text"
-						placeholder="Make the world a better place ..."
+						placeholder="To Do title here"
 						name="title" value={todo?.title}>		
 				</input>
 
 				<textarea 	onChange={changeHandler}
 						  	disabled={!editmode}
 							className="todo__desc"
-							placeholder="Start it by gifting a smile to yourself :) ..."
+							placeholder="To Do description here ..."
 							name="description"
 							value={todo?.description}>
 
@@ -148,18 +222,14 @@ function Todo({props}) {
 					{DeleteButton}
 					{ToggleButton}
 				</div>
-			{/* <p>{todo.creation_date.seconds}</p> */}
-			{/* <p>{todo.deadline.seconds}</p> */}
-			{/*  */}
 		</div>
 	)
 }
 
 
-
 function Todos(props) {
-	const [todos, setTodos] = useState(TodoData);
-	let template_todos_len = 0;
+	const [todos, setTodos] = useState([]);
+	const [temp_id, setTemp_id] = useState(0);
 	// const todosCollection = collection(db, 'todos');
 	// console.log(props.userId);
 	// const q = query(todosCollection, where("userId", "==", props.userId));
@@ -177,8 +247,12 @@ function Todos(props) {
 	[props.userId]);
 
 	const updateTodos = (new_todo) => {
+		console.log("upodating:", new_todo);
+		if (new_todo.is_new) {
+			return setTodos(olds => [new_todo, ...olds]);
+		}
 		setTodos(oldTodos => oldTodos.map(todo => {
-			if (todo.id === new_todo.id) {
+			if (todo.id === new_todo.id ) {
 				if (JSON.stringify(todo) !== JSON.stringify(new_todo)) {
 					return new_todo;
 				}
@@ -193,37 +267,41 @@ function Todos(props) {
 		setTodos(old_todos => old_todos.filter(todo => todo.id != delete_id));
 	}
 
+	function getTodoTemplate() {
+		setTemp_id(old => old + 1)
+		return (
+			{
+				id: "temp_" + temp_id,
+				title: "",
+				description: "",
+				files : [],
+				is_done: false,
+				is_expired: false,
+				created_at: 0,
+				is_new: true,
+			}
+		)
+	}
+
 	const createTodo = () => {
-		console.log("CREATING...")
-		const template = {
-			id: template_todos_len,
-			title: "",
-			description: "",
-			files : [],
-			is_done: false,
-			is_expired: false,
-			created_at: 0,
-			is_new: 0
-		};
+		let template = getTodoTemplate();
 		updateTodos(template);
 	};
 
-
-
-
 	const todos_visible = todos.map(todo => {
+		console.log(dayjs(todo.deadline));
+		console.log(dayjs().format("HH:mm"))
 		return (
 			<Todo key={todo.id} props={{todo, is_new: todo.is_new, setTodo: {}, updateTodos, deleteTodo}} />
 		);
 	})
-	// console.log(todos_visible);
 	return (
 		<section className="todos">
 			<div className="todos__toolbar">
 				<button onClick={createTodo} >ADD</button>
 			</div>
 			<div className="todos__list">
-				{todos.length == 0 ? "" : todos_visible}
+				{todos.length == 0 ? "You don't have any todos yet, Let's create one now  😃" : todos_visible}
 			</div>
 		</section>
 	)

@@ -5,8 +5,8 @@
 
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  /* font-size: 16px; */
-  /* line-height: 24px; */
+  font-size: 16px;
+  line-height: 24px;
   font-weight: 400;
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -39,7 +39,6 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow-x: hidden;
-  padding: 1% 0% 5% 0%;
 }
 
 h1 {
@@ -238,6 +237,7 @@ textarea{
   scroll-behavior: smooth;
   letter-spacing: 1px;
   line-height: 150%;
+  /* overflow: ; */
 }
 
 input:focus{
@@ -359,6 +359,7 @@ textarea:focus{
   margin: 0;
   height: auto;
   width: auto;
+  overflow: hidden;
 }
 
 .todos__collapsed .todo__files{
@@ -367,19 +368,12 @@ textarea:focus{
 
 .todos__collapsed:hover{
   transform: scale(1.01);
-  /* box-shadow: inset 0px 0px 2px whitesmoke; */
   color: white;
   border: none;
   border-bottom: 1px solid white;
-  border-top: 1px solid white;
+  border-top: 1px solida white;
 }
 
-/* .todos__collapsed .todo__button{
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-items: center;
-  justify-content: center;
-} */
 
 .todos__collapsed .todo__button{
   opacity: 0%;
@@ -400,7 +394,10 @@ textarea:focus{
 }
 
 .todos__collapsed .todo__title{
+  border-left: 2px solid white;
+  border-radius: 0;
   padding: 0;
+  text-indent: 1em;
   margin: 0;
   width: 30%;
   font-size: 100%;
@@ -423,6 +420,7 @@ textarea:focus{
   border-color: rgb(0, 128, 0, 0.5);
 }
 
+
 .todos__collapsed[data-expired="true"] {
   opacity: 40%;
 }
@@ -438,13 +436,21 @@ textarea:focus{
   background-color: rgba(255, 0, 0, 0.3);
 }
 
+
 .todos__item[data-expired="true"][data-done="false"] {
   border-color: rgba(255, 0, 0, 0.5);
 }
 
+.todos__item[data-expired="true"][data-done="false"] .dummy{
+  color: red;
+  text-decoration: line-through;
+}
+
+
 .todo_removed {
   font-size: 90%;
   padding: 5px;
+  color: palevioletred;
   /* transition: all 0.5s linear; */
 }
 
@@ -460,6 +466,81 @@ textarea:focus{
   height: 0;
   padding: 0;
   border: none;
+}
+
+.todos__collapsed .todo_top {
+  flex-flow: row;
+  justify-content: start;
+  width: 20%;
+}
+
+.todo_top{
+  flex-flow: row-reverse;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  padding-left: 10px;
+  gap: 20px;
+  width: 100%;
+}
+
+.todo_top p{
+ margin: 0;
+ padding: 0;
+}
+
+.dummy{
+  color: yellow;
+}
+
+
+
+.todos__collapsed .dummy{
+  display: none;
+}
+
+
+.todo_top{
+  font-size: 90%;
+}
+
+.todo_top input {
+  background-color: transparent;
+  border: 2px solid inherit;
+  border-color: inherit;
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+
+.todos__collapsed .todo_top label {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0px 2%;
+  border-radius: 5px;
+}
+
+.todos__collapsed input,  textarea{
+  text-align: left;
+}
+
+.todos__collapsed .deadline_input{
+  display: none;
+}
+
+
+.todos__collapsed .deadline_time input {
+  display: none;
+}
+
+
+.deadline_label, .deadline_time{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.deadline_time{
+  font-size: 80%;
 }
 
 /* 

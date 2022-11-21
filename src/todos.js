@@ -9,7 +9,9 @@ export default [
 		],
 		is_starred: true,
 		is_done: false,
-		is_expired: false
+		is_expired: false,
+		deadline: 234234,
+		deadline_time: ""
 	},
 	{
 		id: "2",
@@ -21,7 +23,9 @@ export default [
 		],
 		is_starred: false,
 		is_done: true,
-		is_expired: false
+		is_expired: false,
+		deadline: 234234,
+		deadline_time: "22:33"
 	},
 	{
 		id: "3",
@@ -33,7 +37,9 @@ export default [
 		],
 		is_starred: true,
 		is_done: false,
-		is_expired: true
+		is_expired: true,
+		deadline: 234234,
+		deadline_time: "09:11"
 	},
 	{
 		id: "4",
