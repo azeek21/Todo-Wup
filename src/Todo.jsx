@@ -17,6 +17,7 @@ function Todo({props}) {
 	[todo, setTodo] = useState(todo);
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
 
+
 	const filesHandler = (ev) => {
 		let files = ev.target.files;
 		for (let i = 0; i < files.length; i++) {
@@ -26,11 +27,11 @@ function Todo({props}) {
 				return ;
 			}
 		};
-
 		setTodo(old => ({...old, files: ev.target.files}));
 	}
 
 	function changeHandler(ev) {
+		ev.target.name;
 		if (ev.target.name  === "deadline" || ev.target.name === "deadline_time") {
 			if (ev.target.name === "deadline" && !ev.target.value) {
 				setTodo(old => ({...old, deadline: null}));
@@ -57,6 +58,7 @@ function Todo({props}) {
 				let minute = ev.target.value ? parseInt(ev.target.value.split(":")[1]) : 59;
 				deadline = deadline.set("hours", hour).set("minutes", minute);
 			}
+
 			setTodo(old => ({...old, deadline: deadline.unix()}));
 			return ;
 		}
@@ -95,6 +97,16 @@ function Todo({props}) {
 	}
 
 	
+	const checkDeadline = (ev) => {
+		console.log("BLUR");
+		if (todo.deadline < dayjs().unix()) {
+			let deadline = dayjs.unix(todo.deadline).set("hour", dayjs().hour()).set("minute", dayjs().minute() + 2);
+			alert("Can't set date that's over as deadline !");
+			ev.target.focus();
+			setTodo(old => ({...old, deadline: deadline.unix()}));
+		}
+	};
+
 	const toggleTodo = (ev) => {
 		setCollapsed((old) => {return !old});
 	}
@@ -159,15 +171,16 @@ function Todo({props}) {
 						name="is_done"
 						checked={eval(todo.is_done)}
 						/>				
-				<p className="dummy" > {todo.is_done ? "You finished it 👍" : todo.deadline ? `you have ${dayjs().to(dayjs.unix(todo.deadline), true)}` : "you dont have deadlines for this todo"} </p>
+				<p className="dummy" > {todo.is_done ? "You finished it 👍" : todo.deadline ? `${todo.is_expired ? "It's been" : "You have about"} ${dayjs().to(dayjs.unix(todo.deadline), true)} ${todo.is_expired ? "since deadline" : "untill deadline"}` : "you dont have deadlines for this todo"} </p>
 				<label className="deadline_label" htmlFor="deadline">
 			
-					{collapsed && todo.deadline ? <p>{`${dayjs().to(dayjs.unix(todo.deadline), true)} ${todo.is_expired ? "ago" : "left"}`}</p> : ""}
+					{collapsed && todo.deadline ? <p>{`${dayjs().to(dayjs.unix(todo.deadline), true)} ${todo.is_expired ? "ago" : "left"}`}</p> : collapsed && !todo.deadline ? "No deadline" : ""}
 			
 					<input	id="deadline" 
 							className="deadline_input"
 							type="date"
 							onChange={changeHandler}
+							onBlur={checkDeadline}
 							name="deadline"
 							value={dayjs.unix(todo.deadline ? todo.deadline : undefined).format("YYYY-MM-DD")}
 							disabled={!editmode}
@@ -178,15 +191,15 @@ function Todo({props}) {
 				<label className="deadline_time" htmlFor="deadlineTime">
 					{collapsed && todo.deadline_time}
 					<input	type="time"
-							id="deadlineTime"
+							id="deadline_time"
+							onChange={changeHandler}
+							onBlur={checkDeadline}
 							name="deadline_time"
 							value={dayjs.unix(todo.deadline).format("HH:mm")}
-							onChange={changeHandler}
 							disabled={!editmode}
 							min={dayjs().format("HH:mm")}
 					/>
 				</label>
-
 
 				</div>
 				<input	onChange={changeHandler}
@@ -245,7 +258,7 @@ function Todos(props) {
 	[props.userId]);
 
 	const updateTodos = (new_todo) => {
-		console.log("upodating:", new_todo);
+		// console.log("upodating:", new_todo);
 		if (new_todo.is_new) {
 			return setTodos(olds => [new_todo, ...olds]);
 		}
