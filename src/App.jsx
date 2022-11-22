@@ -35,7 +35,7 @@ function UserForm(prop) {
 
 function App() {
   
-  const [users, setUsers] = useState([]);
+  const [user, setUser] = useState({});
 
   // const userCollectioRef = collection(db, "users");
   const [formState, setFormState] = useState({
@@ -59,7 +59,7 @@ function App() {
       // setUsers(data.docs.map((doc) => ({id: doc.id , ...doc.data()})))
     };
     getUsers();
-  }, [users.length > 0])
+  }, [])
 
   const changeHandler = (ev) => {
     // console.log(ev.target.name, ev.target.value)
@@ -72,9 +72,8 @@ function App() {
   }
   return (
     <div className="App">
-      {
-        Todos({userId: users.length > 0 ? users.filter(user => user.username == "test")[0].id : ""})
-        }
+      <AuthPage props={{user, setUser}} />
+      <Todos />
     </div>
   )
 }

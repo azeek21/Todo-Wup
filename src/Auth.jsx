@@ -5,8 +5,10 @@ import {
 	createUserWithEmailAndPassword,
 	signInWithEmailAndPassword,
 	signOut,
-	// signInAnonymously,
+	signInAnonymously,
 } from "firebase/auth";
+import {addDoc, updateDoc, getDocs} from "firebase/firestore";
+
 
 function AuthPage(props) {
 	const [formData, setFormData] = useState({
@@ -30,7 +32,7 @@ function AuthPage(props) {
 			console.log(error);
 		}
 	};
-    
+
 	const login = async () => {
 		try {
 			const user = await signInWithEmailAndPassword(auth, formData.email, formData.password);
@@ -60,19 +62,20 @@ function AuthPage(props) {
 			<div className="login_form">
 				<form onSubmit={(ev) => {ev.preventDefault()}} method="POST" className="login__form">
 					<label htmlFor="email">
-						<input onChange={changeHandler} type="email" name="email" id="email" value={formData.name} placeholder='example@gmail.com' />
+						<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.name} placeholder='example@gmail.com' />
 					</label>
 	
 					<label htmlFor="password">
-						<input onChange={changeHandler} type="password"  name='password' value={formData.password} placeholder='ExamplePassword@12345'/>
+						<input onChange={changeHandler} required type="password"  name='password' value={formData.password} placeholder='ExamplePassword@12345'/>
 					</label>
 					<button type='button'  onClick={submitHandler} >Submit</button>
 					<button type='button' onClick={user? logout : login}> {user ? "Logout" : "Login"}  </button>
 					<button type='button' onClick={signInWithGoogle} > Google Sign In  </button>
+					<button type='button' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} > Anon auth  </button>
+					<button onClick={() => {}} > Getusers </button>
 					<p>{user?.email}</p>
 					<p>{user?.displayName}</p>
 					{/* <p>{user?.}</p> */}
-
 				</form>
 			</div>
 		</div>

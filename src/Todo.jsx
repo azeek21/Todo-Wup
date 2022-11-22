@@ -4,9 +4,9 @@ import {db} from './firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
 import TodoData from "./todos";
+
 dayjs.extend(revealTime);
 
-// console.log(typeof(dayjs().get("year")))
 
 
 function Todo({props}) {
