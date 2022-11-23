@@ -6,9 +6,10 @@ import './App.css'
 import Todos from './Todo';
 import {AuthPage} from './Auth'
 // firebase
-import {collection, getDocs, addDoc} from "firebase/firestore";
+import {collection, getDoc, setDoc, doc} from "firebase/firestore";
 // db
-// import {db} from './firebase-config';
+import {db} from './firebase-config';
+import dayjs from 'dayjs';
 
 
 
@@ -37,7 +38,7 @@ function App() {
   
   const [user, setUser] = useState({});
 
-  // const userCollectioRef = collection(db, "users");
+  const userCollectioRef = collection(db, "users");
   const [formState, setFormState] = useState({
     name: "",
     username: "",
@@ -54,12 +55,49 @@ function App() {
   }
 
   useEffect(() => {
-    const  getUsers = async () => {
-      // const data = await getDocs(userCollectioRef);
-      // setUsers(data.docs.map((doc) => ({id: doc.id , ...doc.data()})))
+    const  getUser = async () => {
+      console.log("User change");
+      console.log(user?.uid);
+      if (user.uid) {
+        const userRef = doc(db, "users", user.uid);
+        console.log("USERDOC CREATED")
+        const userDoc = await getDoc(userRef);
+        let userData = userDoc.data();
+        console.log("userDATA:", userData);
+        if (userDoc.exists()) {
+          console.log("EXISTS ")
+          console.log(userData.email);
+          console.log(userData.name);
+          console.log(userData.id);
+          console.log(userData.phone)
+          console.log(userData.joinDate);
+          console.log(dayjs.unix(userData.joinDate).format("DD:MM:YYYY HH:mm"));
+          setUser(userData);
+        }
+        else {
+          console.log("NOT EXIST");
+
+          userData = {
+            name: user.displayName,
+            email: user.email,
+            phone: user.phoneNumber,
+            uid: user.uid,
+            photoUrl: user.photoURL,
+            isAnonymous: user.isAnonymous,
+            emailVerified: user.emailVerified,
+            joinDate: dayjs().unix(),
+            todos: [],
+          }
+          await setDoc(userRef, userData);
+          console.log("USER SET SUCCESS")          
+        }
+      }
+      else {
+        console.log("USER NOT LOGGED IN");
+      }
     };
-    getUsers();
-  }, [])
+    getUser();
+  }, []);
 
   const changeHandler = (ev) => {
     // console.log(ev.target.name, ev.target.value)

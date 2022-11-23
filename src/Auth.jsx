@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import {auth, signInWithGoogle} from './firebase-config';
+import {auth, signInWithGoogle, db} from './firebase-config';
 import {
 	onAuthStateChanged,
 	createUserWithEmailAndPassword,
@@ -7,19 +7,66 @@ import {
 	signOut,
 	signInAnonymously,
 } from "firebase/auth";
-import {addDoc, updateDoc, getDocs} from "firebase/firestore";
+import {setDoc, doc, getDoc} from "firebase/firestore";
+import dayjs from 'dayjs';
 
 
-function AuthPage(props) {
+function AuthPage({props}) {
 	const [formData, setFormData] = useState({
 		email: "",
 		password: ""
 	})
-	const [user, setUser] = useState({email: ""});
+	const {user, setUser} = props;
 
 	useEffect(() => {
 		onAuthStateChanged(auth, (currentUser) => {
-			setUser(currentUser);
+			const  getUser = async () => {
+				console.log("User change");
+				console.log(currentUser?.uid);
+				if (currentUser.uid) {
+				  const userRef = doc(db, "users", currentUser.uid);
+				  console.log("USERDOC CREATED")
+				  const userDoc = await getDoc(userRef);
+				  let userData = userDoc.data();
+				  if (userDoc.exists()) {
+					console.log("EXISTS ")
+					console.log(userData.email);
+					console.log(userData.name);
+					console.log(userData.uid);
+					console.log(userData.joinDate);
+					console.log(dayjs.unix(userData.joinDate).format("DD:MM:YYYY HH:mm"));
+					setUser(userData);
+				  }
+				  else {
+					console.log("NOT EXIST");
+					
+					console.log("Adding user ...")
+					userData = {
+					  name: currentUser.displayName,
+					  email: currentUser.email,
+					  phone: currentUser.phoneNumber,
+					  uid: currentUser.uid,
+					  photoUrl: currentUser.photoURL,
+					  isAnonymous: currentUser.isAnonymous,
+					  emailVerified: currentUser.emailVerified,
+					  joinDate: dayjs().unix(),
+					  todos: [],
+					}
+
+					try{
+					  await setDoc(userRef, userData);
+					  console.log("USER ADD SUCCESS")
+					  setUser(userData);
+					} catch (error) {
+					  console.log(error);
+					}
+				  }
+				}
+				else {
+				  console.log("USER NOT LOGGED IN");
+				}
+			  };
+			  getUser();
 		})
 	}, [])
 
@@ -56,7 +103,6 @@ function AuthPage(props) {
 		ev.preventDefault();
 		register();
 	}
-	console.log(user);
 	return (
 		<div className='login_page' >
 			<div className="login_form">
