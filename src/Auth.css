@@ -1,0 +1,80 @@
+.login_page{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: all 0.4s linear;
+    font-size: 100%;
+}
+
+.no_user {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.no_user input {
+    background-color: transparent;
+    border: 2px solid cyan;
+    border-radius: 10px;
+    padding: 10px;
+    outline: none;
+    font-size: 150%;
+}
+
+.no_user label{
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 5px;
+    color: antiquewhite;
+
+}
+
+.no_user input:focus{
+    border-color: #4285F4;
+    background-color: rgb(128, 128, 128, 0.3);
+}
+
+.login_form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
+}
+
+.login_buttons {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1em;
+
+}
+
+.login_buttons button{
+    width: 100%;
+}
+
+.login_buttons .login_option {
+    width: max-content;
+    font-size: 80%;
+    align-self: end;
+    justify-self: end;
+    padding: 5px;
+    text-align: start;
+}
+
+.guest_login{
+    background-color: rgba(128, 128, 128, 0.2);
+    color: rgba(152, 127, 0, 0.667);
+}
+
+.google_login {
+    background-image: linear-gradient(to right,  #4285F4,  #EA4335, #FBBC05, #34A853);
+}

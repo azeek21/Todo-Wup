@@ -9,6 +9,10 @@ import {
 } from "firebase/auth";
 import {setDoc, doc, getDoc} from "firebase/firestore";
 import dayjs from 'dayjs';
+import {userFactory, printUserdata, userStateChangeHandler} from './Auth_tools';
+
+// css for auth page/component
+import "./Auth.css";
 
 
 function AuthPage({props}) {
@@ -16,59 +20,18 @@ function AuthPage({props}) {
 		email: "",
 		password: ""
 	})
+	const [preference, setPreference] = useState({
+		login: true,
+		register: false
+	}); 
 	const {user, setUser} = props;
 
 	useEffect(() => {
 		onAuthStateChanged(auth, (currentUser) => {
-			const  getUser = async () => {
-				console.log("User change");
-				console.log(currentUser?.uid);
-				if (currentUser.uid) {
-				  const userRef = doc(db, "users", currentUser.uid);
-				  console.log("USERDOC CREATED")
-				  const userDoc = await getDoc(userRef);
-				  let userData = userDoc.data();
-				  if (userDoc.exists()) {
-					console.log("EXISTS ")
-					console.log(userData.email);
-					console.log(userData.name);
-					console.log(userData.uid);
-					console.log(userData.joinDate);
-					console.log(dayjs.unix(userData.joinDate).format("DD:MM:YYYY HH:mm"));
-					setUser(userData);
-				  }
-				  else {
-					console.log("NOT EXIST");
-					
-					console.log("Adding user ...")
-					userData = {
-					  name: currentUser.displayName,
-					  email: currentUser.email,
-					  phone: currentUser.phoneNumber,
-					  uid: currentUser.uid,
-					  photoUrl: currentUser.photoURL,
-					  isAnonymous: currentUser.isAnonymous,
-					  emailVerified: currentUser.emailVerified,
-					  joinDate: dayjs().unix(),
-					  todos: [],
-					}
-
-					try{
-					  await setDoc(userRef, userData);
-					  console.log("USER ADD SUCCESS")
-					  setUser(userData);
-					} catch (error) {
-					  console.log(error);
-					}
-				  }
-				}
-				else {
-				  console.log("USER NOT LOGGED IN");
-				}
-			  };
-			  getUser();
-		})
+			userStateChangeHandler(currentUser, setUser);
+		});
 	}, [])
+
 
 	const register = async () => {
 		try{
@@ -103,29 +66,41 @@ function AuthPage({props}) {
 		ev.preventDefault();
 		register();
 	}
+
 	return (
-		<div className='login_page' >
-			<div className="login_form">
-				<form onSubmit={(ev) => {ev.preventDefault()}} method="POST" className="login__form">
-					<label htmlFor="email">
-						<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.name} placeholder='example@gmail.com' />
-					</label>
+		<div className='login_page no_user' >
+			<div>
+{ user ?				<form	className="login_form"
+						onSubmit={(ev) => {ev.preventDefault()}}
+						method="POST">
+						
+						<label htmlFor="email">
+							<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.name} placeholder='Email' />
+						</label>
 	
-					<label htmlFor="password">
-						<input onChange={changeHandler} required type="password"  name='password' value={formData.password} placeholder='ExamplePassword@12345'/>
-					</label>
-					<button type='button'  onClick={submitHandler} >Submit</button>
-					<button type='button' onClick={user? logout : login}> {user ? "Logout" : "Login"}  </button>
-					<button type='button' onClick={signInWithGoogle} > Google Sign In  </button>
-					<button type='button' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} > Anon auth  </button>
-					<button onClick={() => {}} > Getusers </button>
+						<label htmlFor="password">
+							<input onChange={changeHandler} required type="password"  name='password' value={formData.password} placeholder='Password'/>
+						</label>
+
+						<div className='login_buttons' >
+							{preference.register && <button type='button'  onClick={submitHandler} > Register </button>}
+							{preference.login && <button type='button' onClick={user? logout : login}> {user ? "Logout" : "Login"}  </button>}
+							{preference.register && <button className='google_login' type='button' onClick={signInWithGoogle} > {preference.login ? "Login" : "Register"} with Google </button> }
+							{preference.register && <button className='guest_login' type='button' title='You may lose your data, Use only for testing reasons' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} >* Continue as guest *</button>}
+							<button className='login_option' type='button'  onClick={() => { setPreference(old => ({register: !old.register, login: !old.login})) }}  > or {preference.login ? "register" : "login"} now {"->"} </button>
+							{/* <p>{user?.email}</p>
+							<p>{user?.displayName}</p> */}
+						</div>
+				</form> : 
+				<div className="user_info">
+					<p>{user?.name}</p>
 					<p>{user?.email}</p>
-					<p>{user?.displayName}</p>
-					{/* <p>{user?.}</p> */}
-				</form>
+				</div>
+}
 			</div>
 		</div>
 	)
 }
+
 
 export {AuthPage};
