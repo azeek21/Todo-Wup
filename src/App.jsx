@@ -38,12 +38,6 @@ function App() {
   
   const [user, setUser] = useState(null);
 
-  const userCollectioRef = collection(db, "users");
-  const [formState, setFormState] = useState({
-    name: "",
-    username: "",
-    age: ""
-  })
 
   useEffect(() => {
      
@@ -53,19 +47,12 @@ function App() {
     console.log("ADDING...")
   }
 
-  const changeHandler = (ev) => {
-    // console.log(ev.target.name, ev.target.value)
-    setFormState(old => {return {...old, [ev.target.name]: ev.target.value}});
-  }
 
-  const submitHandler = () => {
-    // console.log(formState);
-    createUser();
-  }
+
   return (
     <div className="App">
       <AuthPage props={{user, setUser}} />
-      {user && <Todos />}
+      {user && <Todos props={{user}} />}
     </div>
   )
 }

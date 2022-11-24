@@ -3,7 +3,8 @@ import {getFirestore} from  "@firebase/firestore";
 import {
 	getAuth,
 	GoogleAuthProvider,
-	signInWithPopup
+	signInWithPopup,
+	updateProfile
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -37,4 +38,4 @@ const providerGoogle = new GoogleAuthProvider();
 	});
 };
 
-export {db, auth, signInWithGoogle};
+export {db, auth, signInWithGoogle, updateProfile};

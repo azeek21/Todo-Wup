@@ -1,10 +1,10 @@
-import { collection, getDocs, where, query, setDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, setDoc, doc} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {db} from './firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
 import TodoData from "./todos";
-
+// dayjs setup
 dayjs.extend(revealTime);
 
 
@@ -16,7 +16,7 @@ function Todo({props}) {
 	const [removed, setRemoved] = useState({state: false, timeOut: 5, timer: ""});
 	[todo, setTodo] = useState(todo);
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
-
+	// console.log(todo);
 
 	const filesHandler = (ev) => {
 		let files = ev.target.files;
@@ -70,13 +70,15 @@ function Todo({props}) {
 		changeHandler({target: {name: ev.target.name, value: ev.target.checked}});
 	}
 
-	const saveHandler = () => {
+	const saveHandler = async () => {
 		if (todo.is_new) {
 			todo.created_at = new Date();
 			todo.is_new = false;
 			setCollapsed(true);
 		}
 		updateTodos(todo);
+		const todo_ref = doc(db, "todos", todo.id);
+		await setDoc(todo_ref, todo);
 		setEditmode(false);
 	}
 
@@ -100,7 +102,8 @@ function Todo({props}) {
 	const checkDeadline = (ev) => {
 		console.log("BLUR");
 		if (todo.deadline < dayjs().unix()) {
-			let deadline = dayjs.unix(todo.deadline).set("hour", dayjs().hour()).set("minute", dayjs().minute() + 2);
+			let deadline = todo.deadline ? dayjs.unix(todo.deadline) : dayjs();
+			deadline = deadline.set("hour", dayjs().hour()).set("minute", dayjs().minute() + 2);
 			alert("Can't set date that's over as deadline !");
 			ev.target.focus();
 			setTodo(old => ({...old, deadline: deadline.unix()}));
@@ -238,24 +241,26 @@ function Todo({props}) {
 }
 
 
-function Todos(props) {
+function Todos({props}) {
+	console.log(props);
 	const [todos, setTodos] = useState([]);
 	const [temp_id, setTemp_id] = useState(0);
-	// const todosCollection = collection(db, 'todos');
-	// console.log(props.userId);
-	// const q = query(todosCollection, where("userId", "==", props.userId));
+	const [loading, setLoading] = useState(true)
 
 
 	useEffect(() => {
 		const getTodos = async () => {
-			// const data = await getDocs(q);
-			// data.docs.map(doc => {console.log(doc.id, doc.data())});
-			// setTodos(data.docs.map((doc) => ({id: doc.id, ...doc.data()})));
-			// console.log(todos);
+			const todosCollection = collection(db, 'todos');
+			const todosQuery = query(todosCollection, where("uid", "==", props.user.uid));
+
+			const todosDocs = await getDocs(todosQuery);
+
+			setTodos(todosDocs.docs.map(doc => ({id: doc.id, ...doc.data()})));
+			// setTodos(todosDocs.docs);
 		};
-		// getTodos();
+		getTodos();
 	},
-	[props.userId]);
+	[props.uid]);
 
 	const updateTodos = (new_todo) => {
 		// console.log("upodating:", new_todo);

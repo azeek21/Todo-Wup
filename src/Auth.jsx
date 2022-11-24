@@ -9,21 +9,20 @@ import {
 } from "firebase/auth";
 import {setDoc, doc, getDoc} from "firebase/firestore";
 import dayjs from 'dayjs';
-import {userFactory, printUserdata, userStateChangeHandler} from './Auth_tools';
+import {userFactory, printUserdata, userStateChangeHandler, registerUser, loginUser, logoutUser} from './Auth_tools';
 
 // css for auth page/component
 import "./Auth.css";
 
 
 function AuthPage({props}) {
-	const [formData, setFormData] = useState({
-		email: "",
-		password: ""
-	})
+	const [formData, setFormData] = useState({})
+
 	const [preference, setPreference] = useState({
 		login: true,
 		register: false
-	}); 
+	});
+	const [message, setMessage] = useState("");
 	const {user, setUser} = props;
 
 	useEffect(() => {
@@ -33,49 +32,33 @@ function AuthPage({props}) {
 	}, [])
 
 
-	const register = async () => {
-		try{
-			console.log(formData)
-		const user = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-		console.log(user);
-		} catch (error) {
-			console.log(error);
-		}
-	};
-
 	const login = async () => {
-		try {
-			const user = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-		} catch (error) {
-			console.log(error);
-		}
-	};
-
-	const logout = async () => {
-		signOut(auth);
+		loginUser(formData, setMessage);
 	};
 
 	const changeHandler = (ev) => {
-		console.log(ev.target.name, ev.target.value);
 		setFormData(oldform => ({...oldform, [ev.target.name]: ev.target.value}));
 	};
 
-
 	const submitHandler = (ev) => {
-		console.log("post ...")
 		ev.preventDefault();
-		register();
+		registerUser(formData, setMessage);
 	}
 
 	return (
-		<div className='login_page no_user' >
+		<div className={`login_page ${!user ? "no_user" : ""}`} >
 			<div>
-{ user ?				<form	className="login_form"
-						onSubmit={(ev) => {ev.preventDefault()}}
+			{ !user ? <form	className="login_form"
+						onSubmit={(ev) => {ev.preventDefault(); !user ? login() : preference.register ? register() : logoutUser()}}
 						method="POST">
-						
+						{message && <p className='login_error'>{message}</p>}
+
+						<label htmlFor="name">
+							<input onChange={changeHandler} required type="name" name="name" id="name" value={formData.name} placeholder='Casandra Evans' />
+						</label>
+
 						<label htmlFor="email">
-							<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.name} placeholder='Email' />
+							<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.email} placeholder='Email' />
 						</label>
 	
 						<label htmlFor="password">
@@ -83,24 +66,25 @@ function AuthPage({props}) {
 						</label>
 
 						<div className='login_buttons' >
-							{preference.register && <button type='button'  onClick={submitHandler} > Register </button>}
-							{preference.login && <button type='button' onClick={user? logout : login}> {user ? "Logout" : "Login"}  </button>}
+							{preference.register && <button type='submit'  onClick={submitHandler} > Register </button>}
+							{preference.login && <button> {user ? "Logout" : "Login"}  </button>}
 							{preference.register && <button className='google_login' type='button' onClick={signInWithGoogle} > {preference.login ? "Login" : "Register"} with Google </button> }
 							{preference.register && <button className='guest_login' type='button' title='You may lose your data, Use only for testing reasons' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} >* Continue as guest *</button>}
 							<button className='login_option' type='button'  onClick={() => { setPreference(old => ({register: !old.register, login: !old.login})) }}  > or {preference.login ? "register" : "login"} now {"->"} </button>
-							{/* <p>{user?.email}</p>
-							<p>{user?.displayName}</p> */}
 						</div>
 				</form> : 
 				<div className="user_info">
-					<p>{user?.name}</p>
-					<p>{user?.email}</p>
+					<div className="user_image">
+						<img src={user.photoUrl ? user.photoUrl : "default_pfp.png"} alt="User profile photo"/>
+					</div>
+					<p>{user.name ? user.name : "Temprorary user"}</p>
+					<button className='user_logout' onClick={logoutUser}>Log Out</button>
 				</div>
-}
+			}
 			</div>
 		</div>
 	)
 }
-
+ 
 
 export {AuthPage};

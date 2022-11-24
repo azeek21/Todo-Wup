@@ -8,7 +8,7 @@ import {
 	GoogleAuthProvider,
 } from "firebase/auth";
 import { getDoc, doc, setDoc } from "firebase/firestore";
-import {db, auth} from './firebase-config';
+import {db, auth, updateProfile} from './firebase-config';
 
 const providerGoogle = new GoogleAuthProvider();
 
@@ -22,25 +22,28 @@ const signInWithGoogle = () => {
 		});
 };
 
-const registerUser = async (registerData) => {
+const registerUser = async (registerData, setMessage) => {
 	try{
 		console.table(registerData)
-		const user = await createUserWithEmailAndPassword(auth, registerData.email, registerData.password);
+		const user = await createUserWithEmailAndPassword(auth, registerData.email, registerData.password)
+								.then((userCred) => { updateProfile(userCred.user, {displayName: registerData.name})});
 		console.log(user);
 	} catch (error) {
+		setMessage(error.message);
 		console.log(error);
 	};
 };
 
-const loginUser = async (loginData) => {
+const loginUser = async (loginData, setMessage) => {
 	try {
 		await signInWithEmailAndPassword(auth, loginData.email, loginData.password);
 	} catch (error) {
+		setMessage(error.code);
 		console.log(error);
 	}
 };
 
-const logout = async () => {
+const logoutUser = async () => {
 	signOut(auth);
 };
 
@@ -75,7 +78,7 @@ const userStateChangeHandler = (currentUser, setUser) => {
 			const userRef = doc(db, "users", currentUser.uid);
 			const userDoc = await getDoc(userRef);
 			
-			if (userDoc) {
+			if (userDoc.exists()) {
 				const userData = userDoc.data();
 				console.log("FOUND USER IN DB ENDING LOGIN;")
 				setUser(userData);
@@ -89,7 +92,7 @@ const userStateChangeHandler = (currentUser, setUser) => {
 					setUser(userData)
 				} catch (error) {
 					console.error("FATAL >>> CAN'T ADD USER TO DB :")
-					console.log(error);
+					console.log(error.message);
 				}
 			}
 		}
@@ -103,4 +106,4 @@ const userStateChangeHandler = (currentUser, setUser) => {
 };
 
 
-export {userFactory, printUserdata, userStateChangeHandler};
+export {userFactory, printUserdata, userStateChangeHandler, registerUser, loginUser, logoutUser};
