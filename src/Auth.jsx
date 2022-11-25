@@ -27,7 +27,7 @@ function AuthPage({props}) {
 
 	useEffect(() => {
 		onAuthStateChanged(auth, (currentUser) => {
-			userStateChangeHandler(currentUser, setUser);
+			userStateChangeHandler(currentUser, setUser, props.setIs_auth);
 		});
 	}, [])
 
@@ -48,7 +48,7 @@ function AuthPage({props}) {
 	return (
 		<div className={`login_page ${!user ? "no_user" : ""}`} >
 			<div>
-			{ !user ? <form	className="login_form"
+			{ !user && !props.is_auth ? <form	className="login_form"
 						onSubmit={(ev) => {ev.preventDefault(); !user ? login() : preference.register ? register() : logoutUser()}}
 						method="POST">
 						{message && <p className='login_error'>{message}</p>}
@@ -72,7 +72,13 @@ function AuthPage({props}) {
 							{preference.register && <button className='guest_login' type='button' title='You may lose your data, Use only for testing reasons' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} >* Continue as guest *</button>}
 							<button className='login_option' type='button'  onClick={() => { setPreference(old => ({register: !old.register, login: !old.login})) }}  > or {preference.login ? "register" : "login"} now {"->"} </button>
 						</div>
-				</form> : 
+				</form> 
+				
+				: props.is_auth && !user ? 
+				
+				<div className="loader"></div>
+				
+				:
 				<div className="user_info">
 					<div className="user_image">
 						<img src={user.photoUrl ? user.photoUrl : "default_pfp.png"} alt="User profile photo"/>

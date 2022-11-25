@@ -172,6 +172,7 @@ input:focus{
   width: 98%;
   align-self: flex-end;
   flex-direction: column;
+  padding-top: 1.5em;
   /* gap: 5px; */
 }
 
@@ -546,5 +547,20 @@ textarea:focus{
 }
 
 
+.loader{
+  height: 50%;
+  width: 50%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 1em dashed gray;
+  animation: loader_animation 2s linear infinite;
+}
 
-
+@keyframes loader_animation {
+  0% {
+    transform: rotateZ(0deg);
+  }
+  100% {
+    transform: rotateZ(360deg);
+  }
+}

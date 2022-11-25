@@ -65,7 +65,7 @@ const printUserdata = (user) => {
 	console.table({...user, createdAt: dayjs.unix(user.joinDate).format("DD:MM:YYYY HH:mm")});
 }
 
-const userStateChangeHandler = (currentUser, setUser) => {
+const userStateChangeHandler = (currentUser, setUser, setIs_auth) => {
 	async function _handler(currentUser, setUser) {
 		console.log("Handling user change ...");
 		if (!currentUser) {
@@ -75,6 +75,7 @@ const userStateChangeHandler = (currentUser, setUser) => {
 		}
 		if (currentUser.uid) {
 			console.log("USER AUTH SUCCESSFUL ;")
+			setIs_auth(true);
 			const userRef = doc(db, "users", currentUser.uid);
 			const userDoc = await getDoc(userRef);
 			

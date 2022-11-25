@@ -37,7 +37,7 @@ function UserForm(prop) {
 function App() {
   
   const [user, setUser] = useState(null);
-
+  const [is_auth, setIs_auth] = useState(false);
 
   useEffect(() => {
      
@@ -51,8 +51,8 @@ function App() {
 
   return (
     <div className="App">
-      <AuthPage props={{user, setUser}} />
-      {user && <Todos props={{user}} />}
+      <AuthPage props={{user, setUser, is_auth, setIs_auth}} />
+      {user && <Todos props={{user, is_auth, setIs_auth}} />}
     </div>
   )
 }

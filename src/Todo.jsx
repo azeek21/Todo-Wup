@@ -1,6 +1,6 @@
-import { collection, getDocs, where, query, setDoc, doc} from "firebase/firestore";
+import { collection, getDocs, where, query, setDoc, doc, addDoc, orderBy} from "firebase/firestore";
 import { useEffect, useState } from "react";
-import {db} from './firebase-config';
+import {auth, db} from './firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
 import TodoData from "./todos";
@@ -71,15 +71,36 @@ function Todo({props}) {
 	}
 
 	const saveHandler = async () => {
+		const todo_for_db = {	
+			title: todo.title,
+			uid: auth.currentUser.uid,
+			description: todo.description,
+			files: todo.files,
+			is_done: todo.is_done,
+			is_new: false,
+			is_expired: todo.is_expired,
+			deadline: todo.deadline,
+			created_at: todo.created_at, 
+		};
+
 		if (todo.is_new) {
-			todo.created_at = new Date();
-			todo.is_new = false;
-			setCollapsed(true);
+			todo.created_at = dayjs().unix();
 		}
-		updateTodos(todo);
-		const todo_ref = doc(db, "todos", todo.id);
-		await setDoc(todo_ref, todo);
+
+		updateTodos({...todo, is_new: false});
+		
+		if (todo.is_new) {
+			console.table(todo.is_new);
+			console.table(todo.id);
+			const todoCollectionRef = collection(db, "todos");
+			await addDoc(todoCollectionRef, todo_for_db);
+		} else {
+			console.log("UPDATE");
+			const docRef = doc(db, "todos", todo.id)
+			await setDoc(docRef, todo_for_db);
+		}
 		setEditmode(false);
+		setCollapsed(true);
 	}
 
 	const deleteHandler = () => {
@@ -98,7 +119,7 @@ function Todo({props}) {
 		}, 1000);
 	}
 
-	
+
 	const checkDeadline = (ev) => {
 		console.log("BLUR");
 		if (todo.deadline < dayjs().unix()) {
@@ -210,7 +231,8 @@ function Todo({props}) {
 						className="todo__title"
 						type="text"
 						placeholder="To Do title here"
-						name="title" value={todo?.title}>		
+						value={todo?.title}		
+						name="title">
 				</input>
 
 				<textarea 	onChange={changeHandler}
@@ -251,7 +273,7 @@ function Todos({props}) {
 	useEffect(() => {
 		const getTodos = async () => {
 			const todosCollection = collection(db, 'todos');
-			const todosQuery = query(todosCollection, where("uid", "==", props.user.uid));
+			const todosQuery = query(todosCollection, where("uid", "==", props.user.uid), orderBy("created_at"));
 
 			const todosDocs = await getDocs(todosQuery);
 
