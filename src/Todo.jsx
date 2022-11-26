@@ -1,9 +1,9 @@
-import { collection, getDocs, where, query, setDoc, doc, addDoc, orderBy} from "firebase/firestore";
+import { collection, getDocs, where, query, setDoc, doc, addDoc, orderBy, deleteDoc} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {auth, db} from './firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
-import TodoData from "./todos";
+// import TodoData from "./todos";
 // dayjs setup
 dayjs.extend(revealTime);
 
@@ -14,6 +14,7 @@ function Todo({props}) {
 	const [collapsed, setCollapsed] = useState((is_new ? false : true));
 	const [editmode, setEditmode] = useState(is_new ? true : false);
 	const [removed, setRemoved] = useState({state: false, timeOut: 5, timer: ""});
+	const [saving, setSaving] = useState(false);
 	[todo, setTodo] = useState(todo);
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
 	// console.log(todo);
@@ -71,36 +72,42 @@ function Todo({props}) {
 	}
 
 	const saveHandler = async () => {
-		const todo_for_db = {	
-			title: todo.title,
-			uid: auth.currentUser.uid,
-			description: todo.description,
-			files: todo.files,
-			is_done: todo.is_done,
-			is_new: false,
-			is_expired: todo.is_expired,
-			deadline: todo.deadline,
-			created_at: todo.created_at, 
-		};
+		setSaving(true);
+		console.table(todo);
+		// if (todo.is_new) {
+		// 	console.log("ADD")
+		// 	const todo_for_db = {
+		// 		title: todo.title,
+		// 		uid: auth.currentUser.uid,
+		// 		description: todo.description,
+		// 		files: todo.files,
+		// 		is_done: todo.is_done,
+		// 		is_new: false,
+		// 		is_expired: todo.is_expired,
+		// 		deadline: todo.deadline,
+		// 		created_at: dayjs().unix()
+		// 	};
+
+		// 	const {id} = await addDoc(collection(db, "todos"), todo_for_db);
+		// 	console.log(id);
+		// 	console.log(todo_for_db.is_new);
+		// 	updateTodos({...todo_for_db, id: id, is_new: false});
+		// 	setEditmode(false);
+		// 	setSaving(false);
+		// 	return ;
+		// }
 
 		if (todo.is_new) {
+			todo.is_new = false;
 			todo.created_at = dayjs().unix();
 		}
 
-		updateTodos({...todo, is_new: false});
-		
-		if (todo.is_new) {
-			console.table(todo.is_new);
-			console.table(todo.id);
-			const todoCollectionRef = collection(db, "todos");
-			await addDoc(todoCollectionRef, todo_for_db);
-		} else {
-			console.log("UPDATE");
-			const docRef = doc(db, "todos", todo.id)
-			await setDoc(docRef, todo_for_db);
-		}
+		console.log("UPDATE");
+		updateTodos(todo);
+		await setDoc(doc(db, "todos", todo.id), todo);
 		setEditmode(false);
-		setCollapsed(true);
+		setSaving(false);
+		return ;
 	}
 
 	const deleteHandler = () => {
@@ -108,11 +115,12 @@ function Todo({props}) {
 		setRemoved(old => ({...old, state: true}));
 		let i = 5;
 		const will_be_removed = document.getElementById(`${todo.id}`)
-		let timer = setInterval(() => {
+		let timer = setInterval(async () => {
 			i--;
 			if (i < 0) {
 				will_be_removed.classList.add("todo_deleted")
-				deleteTodo(todo.id);				
+				await deleteDoc(doc(db, "todos", todo.id));
+				deleteTodo(todo.id);
 				clearInterval(timer);
 			}
 			setRemoved(old => ({...old, timeOut: old.timeOut - 1, timer: timer}));
@@ -149,9 +157,12 @@ function Todo({props}) {
 		)
 	}
 
-	const EditSave = (<button className="" onClick={
-		editmode ? saveHandler : () => setEditmode(true)
-	}> { editmode ? "SAVE" : "EDIT"} </button>);
+	const EditSave = (<button	className="" 
+								onClick={
+								editmode && !saving ? saveHandler
+								: editmode && saving ? () => {}
+								: () => setEditmode(true)}
+								> { editmode && !saving ? "SAVE" : editmode && saving ? <div className="loader"></div> : "EDIT"} </button>);
 
 	const DeleteButton = (<button className="" onClick={deleteHandler} > &#9003;</button>)
 	const ToggleButton = <button className="" onClick={toggleTodo} > {!collapsed ? "⇑" : "⇓"} </button>
@@ -264,16 +275,16 @@ function Todo({props}) {
 
 
 function Todos({props}) {
-	console.log(props);
 	const [todos, setTodos] = useState([]);
 	const [temp_id, setTemp_id] = useState(0);
-	const [loading, setLoading] = useState(true)
+	const [loading, setLoading] = useState(false)
+
 
 
 	useEffect(() => {
 		const getTodos = async () => {
 			const todosCollection = collection(db, 'todos');
-			const todosQuery = query(todosCollection, where("uid", "==", props.user.uid), orderBy("created_at"));
+			const todosQuery = query(todosCollection, where("uid", "==", props.user.uid), orderBy("created_at", "desc"));
 
 			const todosDocs = await getDocs(todosQuery);
 
@@ -287,8 +298,10 @@ function Todos({props}) {
 	const updateTodos = (new_todo) => {
 		// console.log("upodating:", new_todo);
 		if (new_todo.is_new) {
+			console.log("HERE, Created todo and added");
 			return setTodos(olds => [new_todo, ...olds]);
 		}
+
 		setTodos(oldTodos => oldTodos.map(todo => {
 			if (todo.id === new_todo.id ) {
 				if (JSON.stringify(todo) !== JSON.stringify(new_todo)) {
@@ -300,32 +313,35 @@ function Todos({props}) {
 	}
 
 	const deleteTodo = (delete_id) => {
-		console.log(delete_id)
+		// console.log(delete_id)
 		// setTodos((old_todos => old_todos.map(todo => {return todo.id  != delete_id ? todo : null })));
 		setTodos(old_todos => old_todos.filter(todo => todo.id != delete_id));
 	}
 
-	function getTodoTemplate() {
+	async function getTodoTemplate() {
 		setTemp_id(old => old + 1)
-		return (
-			{
-				id: "temp_" + temp_id,
+		const todo = {
 				title: "",
 				description: "",
 				files : [],
 				is_done: false,
 				is_expired: false,
-				created_at: 0,
+				created_at: dayjs().unix(),
 				is_new: true,
 				is_expired: false,
 				deadline: false,
+				uid: auth.currentUser.uid
 			}
-		)
+		const {id} = await addDoc(collection(db, "todos"), todo);
+		todo.id = id;
+		return todo;
 	}
 
-	const createTodo = () => {
-		let template = getTodoTemplate();
+	const createTodo = async () => {
+		setLoading(true);
+		let template = await getTodoTemplate();
 		updateTodos(template);
+		setLoading(false);
 	};
 
 	const todos_visible = todos.map(todo => {
@@ -338,7 +354,7 @@ function Todos({props}) {
 	return (
 		<section className="todos">
 			<div className="todos__toolbar">
-				<button onClick={createTodo} >ADD</button>
+				<button onClick={loading ? () => {} : createTodo} > {loading ? <div className="loader"></div> : "ADD"} </button>
 			</div>
 			<div className="todos__list">
 				{todos.length == 0 ? "You don't have any todos yet, Let's create one now  😃" : todos_visible}

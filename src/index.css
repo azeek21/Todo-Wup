@@ -346,7 +346,7 @@ textarea:focus{
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 10px 0px;
+  padding: 1em 0px;
   border: 1px solid transparent;
   border-bottom: 1px solid rgb(255, 255, 255, 0.7);
   border-radius: 0px;
@@ -548,12 +548,13 @@ textarea:focus{
 
 
 .loader{
+  display: table-cell;
   height: 50%;
-  width: 50%;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 1em dashed gray;
   animation: loader_animation 2s linear infinite;
+  box-shadow: 0 0 0.1em white ;
 }
 
 @keyframes loader_animation {

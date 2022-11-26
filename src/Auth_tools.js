@@ -71,6 +71,7 @@ const userStateChangeHandler = (currentUser, setUser, setIs_auth) => {
 		if (!currentUser) {
 			console.log("NO USER");
 			setUser(null);
+			setIs_auth(false);
 			return ;
 		}
 		if (currentUser.uid) {

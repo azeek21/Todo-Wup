@@ -9,12 +9,19 @@ import {
 } from "firebase/auth";
 import {setDoc, doc, getDoc} from "firebase/firestore";
 import dayjs from 'dayjs';
-import {userFactory, printUserdata, userStateChangeHandler, registerUser, loginUser, logoutUser} from './Auth_tools';
+import {userStateChangeHandler, registerUser, loginUser, logoutUser} from './Auth_tools';
 
 // css for auth page/component
 import "./Auth.css";
 
 
+
+
+/**
+ * 
+ * @param {props} {user, setUser, isAuth, setAuth}  to manipulate data axross Authentication page and App ;
+ * @returns 
+ */
 function AuthPage({props}) {
 	const [formData, setFormData] = useState({})
 
@@ -40,33 +47,30 @@ function AuthPage({props}) {
 		setFormData(oldform => ({...oldform, [ev.target.name]: ev.target.value}));
 	};
 
-	const submitHandler = (ev) => {
-		ev.preventDefault();
-		registerUser(formData, setMessage);
-	}
-
 	return (
 		<div className={`login_page ${!user ? "no_user" : ""}`} >
 			<div>
 			{ !user && !props.is_auth ? <form	className="login_form"
-						onSubmit={(ev) => {ev.preventDefault(); !user ? login() : preference.register ? register() : logoutUser()}}
+						onSubmit={(ev) => {ev.preventDefault(); !user && preference.login ? login() : preference.register ? registerUser(formData, setMessage) : user ? logoutUser() : () => {}}}
 						method="POST">
 						{message && <p className='login_error'>{message}</p>}
 
-						<label htmlFor="name">
-							<input onChange={changeHandler} required type="name" name="name" id="name" value={formData.name} placeholder='Casandra Evans' />
-						</label>
+						{preference.register && 
+							<label htmlFor="name">
+								<input onChange={changeHandler} title="Enter your name, REQUIRED" required type="name" name="name" id="name" value={formData.name} placeholder='Casandra Evans' />
+							</label>
+						}
 
 						<label htmlFor="email">
-							<input onChange={changeHandler} required type="email" name="email" id="email" value={formData.email} placeholder='Email' />
+							<input onChange={changeHandler} title="Email address, REQUIRED, no need to verify." required type="email" name="email" id="email" value={formData.email} placeholder='Email' />
 						</label>
 	
 						<label htmlFor="password">
-							<input onChange={changeHandler} required type="password"  name='password' value={formData.password} placeholder='Password'/>
+							<input onChange={changeHandler} title='At least 6 chars, REQUIRED' required type="password"  name='password' value={formData.password} placeholder='Password'/>
 						</label>
 
 						<div className='login_buttons' >
-							{preference.register && <button type='submit'  onClick={submitHandler} > Register </button>}
+							{preference.register && <button> Register </button>}
 							{preference.login && <button> {user ? "Logout" : "Login"}  </button>}
 							{preference.register && <button className='google_login' type='button' onClick={signInWithGoogle} > {preference.login ? "Login" : "Register"} with Google </button> }
 							{preference.register && <button className='guest_login' type='button' title='You may lose your data, Use only for testing reasons' onClick={() => {signInAnonymously(auth); console.log("ANON AUTH")}} >* Continue as guest *</button>}
