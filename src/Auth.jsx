@@ -20,11 +20,13 @@ import "./Auth.css";
 /**
  * 
  * @param {props} {user, setUser, isAuth, setAuth}  to manipulate data axross Authentication page and App ;
- * @returns 
+ * @var formData data of all form inputs for user to log in or register
+ * @var preference @implements {login: bool, register: bool} to keep user's preferences sortet.
+ * later will be needed for some login and registration loginc;
+ * @message different messages that user need's to see; @todo: add more error handling and give more messages to user about login status;
  */
 function AuthPage({props}) {
 	const [formData, setFormData] = useState({})
-
 	const [preference, setPreference] = useState({
 		login: true,
 		register: false
@@ -32,7 +34,16 @@ function AuthPage({props}) {
 	const [message, setMessage] = useState("");
 	const {user, setUser} = props;
 
+	/**
+	 * get's executed when this AuthPage component is mounted and assigns,
+	 * no dependencies provided so, will not rerun during state changes and updates,
+	 * authpage get's remounted again.
+	 */
 	useEffect(() => {
+		/**
+		 * @listens FIREBASE_AUTH_STATUS and @fires @async @function userStateChangeHandler 
+		 * with @argument currentUser, setUser, 
+		 */
 		onAuthStateChanged(auth, (currentUser) => {
 			userStateChangeHandler(currentUser, setUser, props.setIs_auth);
 		});
