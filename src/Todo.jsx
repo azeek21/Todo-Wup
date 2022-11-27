@@ -1,23 +1,66 @@
+/**
+ * all needed imports here
+ */
 import { collection, getDocs, where, query, setDoc, doc, addDoc, orderBy, deleteDoc} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { useEffect, useState } from "react";
-import {auth, db} from './firebase-config';
+import {auth, db, storage} from './firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
-// import TodoData from "./todos";
-// dayjs setup
+
+/** adding revealTime plugin to dayjs so we can use it's functions like, timeto, timefrom e.t.c */ 
 dayjs.extend(revealTime);
 
 
-
+/**
+ * a single todo component.
+ * @param {object} props will be passed by Todos component;
+ * @returns {JSX} single todo component to Todos parent/container
+ */
 function Todo({props}) {
+	/**
+	 * parsing todo object, setTodo function, is_new boolean, updateTodos and deleteTodo funcitons
+	 * from props passed by todos parent component
+	 */
 	let {todo, setTodo, is_new, updateTodos, deleteTodo} = props;
+
+	const [oldFilesString, setOldFilesString] = useState(JSON.stringify(todo.files));
+
+	/**
+	 * @var {boolean} collapsed todo's state of being collapsed or fully visible
+	 * @function setCollapsed @argument {boolean} collapsed set's the todo's state
+	 */
 	const [collapsed, setCollapsed] = useState((is_new ? false : true));
+
+	/**
+	 * @var {boolean} editmode todo's state of being edited or not
+	 * @function setEditmode @argument {boolean} editmode status of todo being edited or not
+	 */
 	const [editmode, setEditmode] = useState(is_new ? true : false);
+
+	/**
+	 * @var {object} removed todo's state of being removed or not and other info like time user has before todo get's deleted and timeout funciton reference;
+	 * @function setRemoved @argument {object} removed 
+	 */
 	const [removed, setRemoved] = useState({state: false, timeOut: 5, timer: ""});
+
+	/**
+	 * @var {boolean} saving state of todo being saved or not, if true, save button will be replaced by loading animation to\
+	 * represent todo being saved.
+	 * @function setSaving @argument {boolean} saving true if todo is being saved false if not or finished saving;
+	 */
 	const [saving, setSaving] = useState(false);
+
+	/**
+	 * @var {object} todo todo object containing all the info about this single todo;
+	 * @function setTodo @argument {object} todo set's the todo object of current todo component;
+	 * @NOTE useState function doesn't update the original todo object passed by todos component. it just updates copy of it passed to this component,
+	 * to update the original todo object in Todos component, use @function updateTodos @argument {object} todo
+	 */
 	[todo, setTodo] = useState(todo);
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
 	// console.log(todo);
+
 
 	const filesHandler = (ev) => {
 		let files = ev.target.files;
@@ -73,7 +116,35 @@ function Todo({props}) {
 
 	const saveHandler = async () => {
 		setSaving(true);
-		console.table(todo);
+		if (todo.files.length > 0 && oldFilesString !== JSON.stringify(todo.files)) {
+			console.log(todo.files);
+
+			const uploader = async (files) => {
+				console.log("REUPLOADING");
+				for (let i = 0; i < files.length; i++)
+				{
+					let file = files[i];
+					let filename = "user_files/" + auth.currentUser.uid + dayjs().unix() + file.name;
+					try {
+						const uploadTask = await uploadBytesResumable(ref(storage, filename), file);
+						const url = await getDownloadURL(uploadTask.ref);
+						files[i].url = url;
+						files[i].filename = filename;
+					} catch (error) {
+						alert(`Error during file upload, error message here:\n${error.message}`)
+					}
+				}
+
+				console.log("UPLOAD DONE");
+				setTodo(old => ({...old, files: files})); // todo: make file data that so it could be set to firebase db;
+				setOldFilesString(JSON.stringify(todo.files));
+			}
+			uploader(todo.files);
+		}
+
+		// file {nameDb: string, name: name, downloadUrl: string(url)  };
+		//
+		//
 		// if (todo.is_new) {
 		// 	console.log("ADD")
 		// 	const todo_for_db = {
@@ -95,8 +166,7 @@ function Todo({props}) {
 		// 	setEditmode(false);
 		// 	setSaving(false);
 		// 	return ;
-		// }
-
+		// 
 		if (todo.is_new) {
 			todo.is_new = false;
 			todo.created_at = dayjs().unix();
@@ -146,11 +216,12 @@ function Todo({props}) {
 	const filejsx = [];
 	for (let i = 0; i < todo.files.length; i++)
 	{
+		// todo.files = JSON.parse(todo.files);
 		let file = todo.files[i];
 		filejsx.push(
 			<div key={todo.id + i} className="todo__files__item" >
-				<a className="todo__file__link" href={file.name}>
-					<img className="todo__files__img" src="file.png" target="_blank" rel="noreferrer" alt="FILE" />
+				<a className="todo__file__link" href={file.url} download={file.name} >
+					<img className="todo__files__img" src="file.png" target="_blank" rel="noreferrer" alt="FILE"/>
 					<h3 className="todo__filename"> {file.name.length > 10 ? file.name.slice(0,10): file.name} </h3>
 				</a>
 			</div>
