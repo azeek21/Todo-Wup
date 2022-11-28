@@ -23,7 +23,6 @@ function Todo({props}) {
 	 * from props passed by todos parent component
 	 */
 	let {todo, setTodo, is_new, updateTodos, deleteTodo} = props;
-
 	const [oldFilesString, setOldFilesString] = useState(JSON.stringify(todo.files));
 
 	/**
@@ -59,7 +58,6 @@ function Todo({props}) {
 	 */
 	[todo, setTodo] = useState(todo);
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
-	// console.log(todo);
 
 
 	const filesHandler = (ev) => {
@@ -71,7 +69,7 @@ function Todo({props}) {
 				return ;
 			}
 		};
-		setTodo(old => ({...old, files: ev.target.files}));
+		setTodo({...todo, files: ev.target.files});
 	}
 
 	function changeHandler(ev) {
@@ -110,17 +108,15 @@ function Todo({props}) {
 	}
 
 	const checkBoxHandler = (ev) => {
-		console.log(typeof(todo.is_done))
 		changeHandler({target: {name: ev.target.name, value: ev.target.checked}});
 	}
 
 	const saveHandler = async () => {
 		setSaving(true);
 		if (todo.files.length > 0 && oldFilesString !== JSON.stringify(todo.files)) {
-			console.log(todo.files);
 
 			const uploader = async (files) => {
-				console.log("REUPLOADING");
+				let new_files_array = [];
 				for (let i = 0; i < files.length; i++)
 				{
 					let file = files[i];
@@ -132,49 +128,25 @@ function Todo({props}) {
 						files[i].filename = filename;
 					} catch (error) {
 						alert(`Error during file upload, error message here:\n${error.message}`)
+						return ;
 					}
+					let new_file = {name: file.name, filename: file.filename, size: file.size, url: file.url};
+					new_files_array.push(new_file);
 				}
-
-				console.log("UPLOAD DONE");
-				setTodo(old => ({...old, files: files})); // todo: make file data that so it could be set to firebase db;
-				setOldFilesString(JSON.stringify(todo.files));
+				setOldFilesString(JSON.stringify(new_files_array));
+				return new_files_array;
 			}
-			uploader(todo.files);
+			todo.files = await uploader(todo.files);
 		}
 
-		// file {nameDb: string, name: name, downloadUrl: string(url)  };
-		//
-		//
-		// if (todo.is_new) {
-		// 	console.log("ADD")
-		// 	const todo_for_db = {
-		// 		title: todo.title,
-		// 		uid: auth.currentUser.uid,
-		// 		description: todo.description,
-		// 		files: todo.files,
-		// 		is_done: todo.is_done,
-		// 		is_new: false,
-		// 		is_expired: todo.is_expired,
-		// 		deadline: todo.deadline,
-		// 		created_at: dayjs().unix()
-		// 	};
-
-		// 	const {id} = await addDoc(collection(db, "todos"), todo_for_db);
-		// 	console.log(id);
-		// 	console.log(todo_for_db.is_new);
-		// 	updateTodos({...todo_for_db, id: id, is_new: false});
-		// 	setEditmode(false);
-		// 	setSaving(false);
-		// 	return ;
-		// 
 		if (todo.is_new) {
 			todo.is_new = false;
 			todo.created_at = dayjs().unix();
 		}
 
-		console.log("UPDATE");
-		updateTodos(todo);
 		await setDoc(doc(db, "todos", todo.id), todo);
+		setTodo(todo);
+		updateTodos(todo);
 		setEditmode(false);
 		setSaving(false);
 		return ;
@@ -199,7 +171,6 @@ function Todo({props}) {
 
 
 	const checkDeadline = (ev) => {
-		console.log("BLUR");
 		if (todo.deadline < dayjs().unix()) {
 			let deadline = todo.deadline ? dayjs.unix(todo.deadline) : dayjs();
 			deadline = deadline.set("hour", dayjs().hour()).set("minute", dayjs().minute() + 2);
@@ -216,12 +187,11 @@ function Todo({props}) {
 	const filejsx = [];
 	for (let i = 0; i < todo.files.length; i++)
 	{
-		// todo.files = JSON.parse(todo.files);
 		let file = todo.files[i];
 		filejsx.push(
 			<div key={todo.id + i} className="todo__files__item" >
-				<a className="todo__file__link" href={file.url} download={file.name} >
-					<img className="todo__files__img" src="file.png" target="_blank" rel="noreferrer" alt="FILE"/>
+				<a className="todo__file__link" target="_blank" href={file.url ? file.url : ""} download={file.name} >
+					<img className="todo__files__img" src="file.png" rel="noreferrer" alt={file.name}/>
 					<h3 className="todo__filename"> {file.name.length > 10 ? file.name.slice(0,10): file.name} </h3>
 				</a>
 			</div>
@@ -237,7 +207,6 @@ function Todo({props}) {
 
 	const DeleteButton = (<button className="" onClick={deleteHandler} > &#9003;</button>)
 	const ToggleButton = <button className="" onClick={toggleTodo} > {!collapsed ? "⇑" : "⇓"} </button>
-
 
 	if (removed.state) {
 		return (
@@ -369,7 +338,6 @@ function Todos({props}) {
 	const updateTodos = (new_todo) => {
 		// console.log("upodating:", new_todo);
 		if (new_todo.is_new) {
-			console.log("HERE, Created todo and added");
 			return setTodos(olds => [new_todo, ...olds]);
 		}
 
