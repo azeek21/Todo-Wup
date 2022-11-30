@@ -8,7 +8,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import { getDoc, doc, setDoc } from "firebase/firestore";
-import { db, auth, updateProfile } from "./firebase-config";
+import { db, auth, updateProfile } from "../../firebase-config";
 
 const providerGoogle = new GoogleAuthProvider();
 

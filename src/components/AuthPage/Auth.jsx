@@ -2,7 +2,7 @@
  * all neded import here
  */
 import { useEffect, useState } from 'react';
-import {auth, signInWithGoogle, db} from './firebase-config';
+import {auth, signInWithGoogle, db} from '../../firebase-config';
 import {
 	onAuthStateChanged,
 	signInAnonymously,
@@ -17,7 +17,7 @@ import "./Auth.css";
  * AuthPage function component ;
  * @param {props} {user, setUser, isAuth, setAuth}  to manipulate data axross Authentication page and App ;
  * @var formData data of all form inputs for user to log in or register
- * @var preference @implements {login: bool, register: bool} to keep user's preferences sortet.
+ * @var preference {login: bool, register: bool} to keep user's preferences sortet.
  * later will be needed for some login and registration logic;
  * @message different messages that user need's to see; @todo: add more error handling and give more messages to user about login status;
  */

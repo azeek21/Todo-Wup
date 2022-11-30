@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
-import Todos from './Todo';
-import { AuthPage } from './Auth'
+import Todos from './components/Todos/Todo';
+import { AuthPage } from './components/AuthPage/Auth'
 
 /**
  * Creates app, using AuthPage and Todos components 

@@ -4,7 +4,7 @@
 import { collection, getDocs, where, query, setDoc, doc, addDoc, orderBy, deleteDoc} from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { useEffect, useState } from "react";
-import {auth, db, storage} from './firebase-config';
+import {auth, db, storage} from '../../firebase-config';
 import dayjs from "dayjs";
 import revealTime from "dayjs/plugin/relativeTime";
 
@@ -23,6 +23,12 @@ function Todo({props}) {
 	 * from props passed by todos parent component
 	 */
 	let {todo, setTodo, is_new, updateTodos, deleteTodo} = props;
+
+	/**
+	 * @var {string} oldFilesString stores stringified format of todo.files so that we can compare it with the todo.files
+	 * and check if anthing has changed or not. So that we can avoid re uploading files of a todo that hasn't been changed.
+	 * @function setOldFilesString @argument {string} oldFilesString updates oldFileString
+	 */
 	const [oldFilesString, setOldFilesString] = useState(JSON.stringify(todo.files));
 
 	/**
@@ -60,6 +66,14 @@ function Todo({props}) {
 	// const is_expired = todo.deadline.seconds > new Date().getUTCSeconds();
 
 
+	/**
+	 * @listens {input:file}.
+	 * @param {change event} event 
+	 * checks every time selected files of a todo changed and checks if any of them exceed 5mb wich is 5.243e+6 bytes
+	 * max limit. If any file is bigger than 5mb it alerts the user about it and set's the selected files to empty.
+	 * 
+	 * Finally: updates todo.files if selected files pass all validations.
+	 */
 	const filesHandler = (ev) => {
 		let files = ev.target.files;
 		for (let i = 0; i < files.length; i++) {
@@ -72,57 +86,102 @@ function Todo({props}) {
 		setTodo({...todo, files: ev.target.files});
 	}
 
+
+	/**
+	 * @listens inputs except files and checkboxes and updates the values of them in todo respectively.
+	 * @param {change event} ev passed by caller wich is <input onChange={changeHandler} >
+	 */
 	function changeHandler(ev) {
-		ev.target.name;
+
+		/**
+		 * we check if changed input field is respective for deadline and if so we'll hanle it in a different way 
+		 * than we'd do with text inputs.
+		 */
 		if (ev.target.name  === "deadline" || ev.target.name === "deadline_time") {
+			// check if user removed the deadline and setting it to null if user removes it;
 			if (ev.target.name === "deadline" && !ev.target.value) {
 				setTodo(old => ({...old, deadline: null}));
 			}
 			let deadline;
+			
+			// checking if user had a deadline so far, setting it to instance of dayjs instance if user didn't have a deadline (if todo.deadine is falsy value);
 			if (!todo.deadline) {
 				deadline = dayjs();
 			}
+			// obtaining user's deadline if it's set
 			else if (todo.deadline) {
 				deadline = dayjs.unix(todo.deadline)
 			}
+
+
 			if (ev.target.name === "deadline") {
+				// setting the date (day, month, year) of deadline if user change them and copying hour and minute from the old deadline
 				if (todo.deadline) {
 					let h = deadline.get("hour");
 					let m = deadline.get("minute");
 					deadline = dayjs(ev.target.value).set("hour", h).set("m", m);
 				}
 				else {
+					// setting date of deadline if this is the first time user setting a deadline ;
 					deadline = dayjs(ev.target.value);
 				}
 			}
 			if (ev.target.name === "deadline_time") {
+				// setting user's deadline time (hour:minute) if user set's else seting them to end of the day wich is 23:59
 				let hour = ev.target.value ? parseInt(ev.target.value.split(":")[0]) : 23;
 				let minute = ev.target.value ? parseInt(ev.target.value.split(":")[1]) : 59;
 				deadline = deadline.set("hours", hour).set("minutes", minute);
 			}
 
+			// updating deadline and finishing the function ;
 			setTodo(old => ({...old, deadline: deadline.unix()}));
 			return ;
 		}
+		// updating the todo fields like title and description if change was not in deadline
 		setTodo(old => ({ ...old, [ev.target.name]: ev.target.value }));
 	}
 
+	/**
+	 * @listens change on checkbox for done or undone and initializing needed
+	 * values calls the @function changeHandler with updated @param target
+	 * @param {change event} ev from input field type checkbox 
+	 */
 	const checkBoxHandler = (ev) => {
+		// we copy checkbox's checked status to target.value as checboxes store their state in target.checked not in target.value as other inputs like text or time
 		changeHandler({target: {name: ev.target.name, value: ev.target.checked}});
 	}
 
+	/**
+	 * @listens BUTTON:SAVE from todo and updates the firebase database respectively
+	 */
 	const saveHandler = async () => {
+		// we set saving state of todo to true so there'll be loading animation untill we are done saving the todo
 		setSaving(true);
+
+		// we detect if user has added or changed any file attachments and upload files to firebase storage
 		if (todo.files.length > 0 && oldFilesString !== JSON.stringify(todo.files)) {
 
+			/**
+			 * @function uploader, uploads files to firebase storage and creates array of objects containing information about each file
+			 * like donwoad url, filename in storage, original name of the file, size of the file and so on.
+			 * @param {FileList} files from todo.files set by @function fileshandler
+			 * @returns {array} new_files_array; array of file objects with their filename and donwload url from firebase storage
+			 */
 			const uploader = async (files) => {
+				// creating our own array for uploaded files
 				let new_files_array = [];
 				for (let i = 0; i < files.length; i++)
 				{
 					let file = files[i];
+
+					// creating a new filename for file to store in firebase storage so it'll not override any existing files
+					// as we are using userid + current time in unix + original filename; this ensures every filename to be unique in storage
 					let filename = "user_files/" + auth.currentUser.uid + dayjs().unix() + file.name;
 					try {
+						// this uploads the file to firebase sotreage under 'filename' we generated earlier ;
 						const uploadTask = await uploadBytesResumable(ref(storage, filename), file);
+
+						// get the download link of the already uploaded file and append it to file object
 						const url = await getDownloadURL(uploadTask.ref);
 						files[i].url = url;
 						files[i].filename = filename;
@@ -130,46 +189,97 @@ function Todo({props}) {
 						alert(`Error during file upload, error message here:\n${error.message}`)
 						return ;
 					}
+					// creating file object referencing some values from original file and adding our fields like url and filename;
 					let new_file = {name: file.name, filename: file.filename, size: file.size, url: file.url};
+					
+					// appending new file object that we created to the array of uploaded files
 					new_files_array.push(new_file);
 				}
+
+				// updating string of uploaded files so they'll not get reuploaded if user resaves the todo without changing any files
 				setOldFilesString(JSON.stringify(new_files_array));
+
+				// returning our new array of uploaded objects
 				return new_files_array;
 			}
+			// setting todo.files to new generated files array so it can be saved to firebase databse
+			// NOTE: firebase database doesn't accept default FileList files array so we must genrate 
+			// an array of file objects to store info about fiels in firebase database.
 			todo.files = await uploader(todo.files);
 		}
 
+		// checking if todo is new and setting creation time to current date and time before saving ;
 		if (todo.is_new) {
 			todo.is_new = false;
 			todo.created_at = dayjs().unix();
 		}
 
+		// updating todo in firebase database
 		await setDoc(doc(db, "todos", todo.id), todo);
+
+		// updating todo itself inside the app after we finish updating the todo in database ;
 		setTodo(todo);
+
+		// updating the todo in the list of all todos in upper Todos component;
 		updateTodos(todo);
+
+		// setting editmode as false as we finish saving the document and we are not editing it anymore for now;
 		setEditmode(false);
+
+		// finshing and releasing loading status as we updated everything succesfully
 		setSaving(false);
+
+		// not necessary return statement for no reason
 		return ;
 	}
 
+	/**
+	 * @listens BUTTON:DELETE from todo and deltes the todo respectively after 5 seconds enabling user
+	 * to undone the action if it was not intentional.
+	 */
 	const deleteHandler = () => {
+		// changing the todo's state to collapsed so it look's better and more clear that it's being deleted
 		setCollapsed(true);
+
+		// setting todo's pre delte state so it's visibly clear that this todo will be delted soon ;
 		setRemoved(old => ({...old, state: true}));
+
+		// todo will be deleted for real whe this i reaches 0
 		let i = 5;
+
+		// getting the respective todo so we can add a smooth delteing animation when it's deletet
 		const will_be_removed = document.getElementById(`${todo.id}`)
+
+		// setting interval for every second so it updates the time left every second making it less by a second every time untill it reaches zero;
 		let timer = setInterval(async () => {
+			// decrementing i by 1 every second
 			i--;
 			if (i < 0) {
+				// animating deleted todo if time reaches 0
 				will_be_removed.classList.add("todo_deleted")
+
+				// deleting it from database 
 				await deleteDoc(doc(db, "todos", todo.id));
+
+				// removing it from UI
 				deleteTodo(todo.id);
+
+				// removing the interval
 				clearInterval(timer);
 			}
+			// updating the removed object with new number of seconds left to undo the action every second
 			setRemoved(old => ({...old, timeOut: old.timeOut - 1, timer: timer}));
 		}, 1000);
 	}
 
 
+	/**
+	 * checks the set deadline and notifies the user if deadline is set to time that is already over and reset's it to current date time + 2 minutes;
+	 * leaves unchanged if deadline is set for the future ;
+	 * @listens change on respective deadline inputs
+	 * @param {*} ev ingored for now. we'll not be using it in this function but I'll leave it here as it's avialeble 
+	 * and might be useful in the future;
+	 */
 	const checkDeadline = (ev) => {
 		if (todo.deadline < dayjs().unix()) {
 			let deadline = todo.deadline ? dayjs.unix(todo.deadline) : dayjs();
@@ -180,10 +290,15 @@ function Todo({props}) {
 		}
 	};
 
+	/**
+	 * toggels between collapsed and full view of todo.
+	 * @param {*} ev not user, might be useful in the future ;
+	 */
 	const toggleTodo = (ev) => {
 		setCollapsed((old) => {return !old});
 	}
 
+	// collecting all the dom related to files into an array to make the jsx inside return statement more clear ;
 	const filejsx = [];
 	for (let i = 0; i < todo.files.length; i++)
 	{
@@ -403,6 +518,8 @@ function Todos({props}) {
 }
 
 export default Todos;
-// "name.userid.todoid"
 
+/**
+ * @link to some stupid usefult, not so userful schema ;
+ */
 // https://dbdiagram.io/d/6376f2ddc9abfc6111738dd4 ;
