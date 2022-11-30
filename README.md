@@ -21,8 +21,8 @@ It is not required to make a super-beautiful UI and functions not described in t
 # Parts that I satisfied:
 
 Necessary:
-✅ Wrote the code all by my own. \n
-✅ Used react for sure \n
+✅ Wrote the code all by my own;
+✅ Used react for sure
 ✅ used function components
 ✅ used hooks like useEffect, useState, e.t.c
 ✅ it's on github and gitlab.
